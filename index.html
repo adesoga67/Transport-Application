@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automated Atotoarere Transport Fare System</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>=== ATOTOARERE AUTOMATED TRANSPORT FARE SYSTEM ===</h1>
+        <p>Smart fare calculation with real-time data</p>
+      </div>
+
+      <div class="content">
+        <!-- Location Selection Section -->
+        <div class="form-section">
+          <h2 class="section-title">📍 Route Selection</h2>
+
+          <div class="form-group">
+            <label for="origin">From (Origin):</label>
+            <input
+              type="text"
+              id="origin"
+              placeholder="Enter pickup location..."
+              autocomplete="off"
+            />
+            <div id="originSuggestions" class="suggestions"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="destination">To (Destination):</label>
+            <input
+              type="text"
+              id="destination"
+              placeholder="Enter destination..."
+              autocomplete="off"
+            />
+            <div id="destinationSuggestions" class="suggestions"></div>
+          </div>
+
+          <button type="button" id="getRouteBtn" class="btn-secondary">
+            🗺️ Get Route & Analyze Conditions
+          </button>
+
+          <div id="map"></div>
+
+          <div id="routeInfo" class="auto-info" style="display: none">
+            <h4>🛣️ Route Analysis</h4>
+            <div class="route-details">
+              <div class="detail-item">
+                <strong>Distance:</strong> <span id="autoDistance">-</span>
+              </div>
+              <div class="detail-item">
+                <strong>Estimated Duration:</strong>
+                <span id="autoDuration">-</span>
+              </div>
+              <div class="detail-item">
+                <strong>Traffic Status:</strong> <span id="autoTraffic">-</span>
+              </div>
+              <div class="detail-item">
+                <strong>Road Quality:</strong>
+                <span id="autoRoadQuality">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trip Details Section -->
+        <div class="form-section">
+          <h2 class="section-title">🚗 Trip Details</h2>
+
+          <form id="fareForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="vehicleType">Vehicle Type:</label>
+                <select id="vehicleType" name="vehicleType" required>
+                  <option value="">-- Choose a vehicle --</option>
+                  <option value="Bus">🚌 Bus</option>
+                  <option value="Taxi">🚕 Taxi</option>
+                  <option value="Truck">🚚 Truck</option>
+                  <option value="Motorcycle">🏍️ Motorcycle</option>
+                  <option value="Tricycle">🛺 Tricycle</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="passengerCount">Number of Passengers:</label>
+                <input
+                  type="number"
+                  id="passengerCount"
+                  name="passengerCount"
+                  min="1"
+                  value="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="fuelPrice">Current Fuel Price (₦ per liter):</label>
+                <input
+                  type="number"
+                  id="fuelPrice"
+                  name="fuelPrice"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+                <button type="button" id="getFuelPriceBtn" class="btn-auto">
+                  ⛽ Get Current Price
+                </button>
+              </div>
+
+              <div class="form-group">
+                <label for="timeOfDay">Time of Travel:</label>
+                <select id="timeOfDay" name="timeOfDay" required>
+                  <option value="">-- Choose time period --</option>
+                  <option value="Morning_Peak">
+                    🌅 Morning Peak (7-10 AM)
+                  </option>
+                  <option value="Afternoon">☀️ Afternoon (10 AM - 4 PM)</option>
+                  <option value="Evening_Peak">🌆 Evening Peak (4-8 PM)</option>
+                  <option value="Night">🌙 Night (8 PM - 7 AM)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Auto-detected conditions (read-only) -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>🚦 Traffic Condition:</label>
+                <input type="text" id="trafficDisplay" readonly />
+                <input type="hidden" id="trafficFactor" value="1.0" />
+              </div>
+
+              <div class="form-group">
+                <label>🛣️ Road Condition:</label>
+                <input type="text" id="roadDisplay" readonly />
+                <input type="hidden" id="roadCondition" value="1.0" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>📏 Route Distance:</label>
+              <input type="text" id="distanceDisplay" readonly />
+              <input type="hidden" id="distance" value="0" />
+            </div>
+
+            <div class="button-group">
+              <button type="submit" class="btn-primary">
+                💰 Calculate Automated Fare
+              </button>
+              <button type="reset" class="btn-reset">🔄 Reset Form</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Loading Section -->
+        <div id="loadingSection" class="loading" style="display: none">
+          <div class="spinner"></div>
+          <p>Analyzing route and traffic conditions...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="fareBreakdown" class="results-section" style="display: none">
+          <h2>=== 📊 AUTOMATED FARE BREAKDOWN ===</h2>
+
+          <div class="route-summary">
+            <div class="route-info">
+              <div class="info-card">
+                <h4>🚗 Vehicle</h4>
+                <span id="displayVehicleType">-</span>
+              </div>
+              <div class="info-card">
+                <h4>📏 Distance</h4>
+                <span id="displayDistance">-</span>
+              </div>
+              <div class="info-card">
+                <h4>⏰ Time</h4>
+                <span id="displayTimeOfDay">-</span>
+              </div>
+              <div class="info-card">
+                <h4>👥 Passengers</h4>
+                <span id="displayPassengers">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="breakdown-section">
+            <div class="breakdown-item">
+              <strong>Base Fare:</strong>
+              <span id="displayBaseFare">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Fuel Price Adjustment:</strong>
+              <span id="displayFuelAdjustment">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Road Condition Adjustment:</strong>
+              <span id="displayRoadAdjustment">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Time of Day Surcharge:</strong>
+              <span id="displayTimeAdjustment">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Traffic Surcharge:</strong>
+              <span id="displayTrafficAdjustment">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Union Levy:</strong>
+              <span id="displayUnionLevy">-</span>
+            </div>
+          </div>
+
+          <div
+            class="breakdown-section"
+            id="passengerCalculation"
+            style="display: none"
+          >
+            <div class="breakdown-item">
+              <strong>Subtotal per passenger:</strong>
+              <span id="displaySubtotal">-</span>
+            </div>
+            <div class="breakdown-item">
+              <strong>Number of passengers:</strong>
+              <span id="displayPassengerCount">-</span>
+            </div>
+          </div>
+
+          <div class="total-section">
+            <h3>💰 TOTAL FARE: <span id="displayTotalFare">-</span></h3>
+          </div>
+
+          <div class="print-buttons">
+            <button id="printBtn" type="button" class="btn-primary">
+              🖨️ Print Receipt
+            </button>
+            <button id="pdfBtn" type="button" class="btn-secondary">
+              📄 Export PDF
+            </button>
+          </div>
+        </div>
+
+        <footer>
+          <p>
+            === Thank you for using Automated Atotoarere Transport Fare System
+            ===
+          </p>
+          <p>🤖 Powered by Real-time Data & Smart Analytics</p>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Google Maps API - REPLACE 'YOUR_API_KEY' with your actual API key -->
+    <script>
+      // Initialize map without API key for demo purposes
+      window.initMap = function () {
+        console.log("Google Maps API loaded");
+        if (window.fareSystem) {
+          window.fareSystem.initializeMap();
+        }
+      };
+
+      // For demo without API key, we'll simulate the map
+      window.addEventListener("load", function () {
+        // Create a placeholder map
+        const mapDiv = document.getElementById("map");
+        mapDiv.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f0f0f0; color: #666; text-align: center; flex-direction: column;">
+            <div style="font-size: 48px; margin-bottom: 10px;">🗺️</div>
+            <div style="font-size: 16px; font-weight: 600;">Interactive Map</div>
+            <div style="font-size: 14px; margin-top: 5px;">Add your Google Maps API key to enable full functionality</div>
+          </div>
+        `;
+
+        // Initialize the fare system
+        if (typeof AutomatedTransportFareSystem !== "undefined") {
+          window.fareSystem = new AutomatedTransportFareSystem();
+          window.fareSystem.initializeWithoutMaps();
+        }
+      });
+    </script>
+
+    <script src="index.js"></script>
+  </body>
+</html>
